@@ -38,7 +38,11 @@ def parse_expects(expect_file: Path) -> list[Message]:
             last_end = 0
             for match in re.finditer(image_pattern, raw_content):
                 # Add text before this image (if any)
-                text_before = raw_content[last_end : match.start()].replace("\r\n", "\n").strip("\n")
+                text_before = (
+                    raw_content[last_end : match.start()]
+                    .replace("\r\n", "\n")
+                    .strip("\n")
+                )
                 if text_before:
                     contents.append(text_before)
 
@@ -81,18 +85,28 @@ def _diff(expected: list[Message], actual: Any) -> str:
         if "content" not in act:
             return f"Message {i} missing 'content' key"
         if isinstance(act["content"], str):
-            if len(exp["contents"]) != 1 or exp["contents"][0] != act["content"].replace("\r\n", "\n").strip("\n"):
+            if len(exp["contents"]) != 1 or exp["contents"][0] != re.sub(
+                r"\r[ ]*", "", act["content"]
+            ).strip("\n"):
                 return f"Message {i} contents mismatch: expected {exp['contents']}, got {repr(act['content'])}"
             continue
         if not isinstance(act["content"], list):
-            return f"Message {i} contents is not a list: {type(act['content']).__name__}"
+            return (
+                f"Message {i} contents is not a list: {type(act['content']).__name__}"
+            )
         if len(exp["contents"]) != len(act.get("content", [])):
             return f"Message {i} content length mismatch: expected {len(exp['contents'])}, got {len(act.get('content', []))}"
-        for j, (exp_content, act_content) in enumerate(zip(exp["contents"], act.get("content", []))):
-            if isinstance(act_content, str) and exp_content == act_content.replace("\r\n", "\n").strip("\n"):
+        for j, (exp_content, act_content) in enumerate(
+            zip(exp["contents"], act.get("content", []))
+        ):
+            if isinstance(act_content, str) and exp_content == act_content.replace(
+                "\r\n", "\n"
+            ).strip("\n"):
                 continue
             if isinstance(act_content, dict):
-                if "base64" in act_content and act_content["base64"].startswith(exp_content):
+                if "base64" in act_content and act_content["base64"].startswith(
+                    exp_content
+                ):
                     continue
             return f"Message {i} content {j} mismatch: expected '{exp_content}', got '{act_content}'"
     return ""
@@ -110,9 +124,6 @@ def test_example_file(example_file):
     """
     Test that a specific example file can be processed without errors.
     """
-    # FIXME: Skip 301_generate_poml on Windows due to CRLF handling issue
-    if sys.platform.startswith("win") and example_file.name == "301_generate_poml.poml":
-        pytest.skip("Skip 301_generate_poml on Windows due to CRLF handling issue in txt files")
 
     result = poml.poml(example_file)
     expect_file = example_directory / "expects" / (example_file.stem + ".txt")
