@@ -343,7 +343,7 @@ interface ExpectMessage {
 }
 
 function stripEndline(str: string): string {
-  return str.replace(/\n+$/, '').replace(/^\n+/, '').replace(/\r\n/g, '\n').replace(/\r/g, '');
+  return str.replace(/\n+$/, '').replace(/^\n+/, '').replace(/\r\n/g, '\n').replace(/\r[ \t]+/g, '\r').replace(/\r/g, '');
 }
 
 function parseExpects(expectFile: string): ExpectMessage[] {
